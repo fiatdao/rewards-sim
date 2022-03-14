@@ -11,6 +11,9 @@ import {ComitiumFacet} from "lib/comitium/contracts/facets/ComitiumFacet.sol";
 import {ChangeRewardsFacet} from "lib/comitium/contracts/facets/ChangeRewardsFacet.sol";
 import {ICommunityVault} from "./ICommunityVault.sol";
 
+import {ComitiumFacetNew} from "./comitium/ComitiumFacetNew.sol";
+import {IDiamondCut} from "lib/comitium/contracts/interfaces/IDiamondCut.sol";
+import {DiamondCutFacet} from "lib/comitium/contracts/facets/DiamondCutFacet.sol";
 
 import {FDT} from "./FDT.sol";
 
@@ -162,7 +165,75 @@ contract RewardsTest is DSTest {
 
         emit log_uint(userMultiplier0);
         emit log_uint(userMultiplier1);
+    }
+
+    function test_setNewRewards_withUpdatedComitium() public {
+        // Current multipliers
+        uint256 userMultiplierBefore0 = rewards.userMultiplier(address(this));
+        emit log_uint(userMultiplierBefore0);
+
+        // Set up a new rewards
+        Rewards rewardsNew = new Rewards(address(this), address(fdt), address(comitium));
+        rewardsNew.setupPullToken(address(communityVault), 1646611201, 1654555389, 4300000000000000000000000);
+        communityVault.setAllowance(address(rewardsNew), 4300000000000000000000000);
 
 
+        // Deploy new ComitiumFacet
+        ComitiumFacetNew comitiumFacetNew = new ComitiumFacetNew();
+
+        // Define new diamond facets
+        IDiamondCut.FacetCut[] memory fc = new IDiamondCut.FacetCut[](1);
+        bytes4[] memory functionSelectors = new bytes4[](2);
+        functionSelectors[0] = comitiumFacetNew.deposit.selector;
+        functionSelectors[1] = comitiumFacetNew.withdraw.selector;
+        fc[0] = IDiamondCut.FacetCut({
+            facetAddress: address(comitiumFacetNew),
+            action: IDiamondCut.FacetCutAction.Replace,
+            functionSelectors: functionSelectors
+        });
+
+        // Set new facets for
+        DiamondCutFacet dcf = DiamondCutFacet(address(comitium));
+        dcf.diamondCut(
+            fc,
+            address(0),
+            bytes("")
+        );
+        bytes memory changeFacet = abi.encodeWithSelector(dcf.diamondCut.selector, fc,
+            address(0),
+            bytes("")
+        );
+        emit log_bytes(changeFacet);
+
+        // Change rewards contract was updated
+        changeRewardsFacet.changeRewardsAddress(address(rewardsNew));
+        assertEq(address(rewardsNew), rewards_address());
+
+        // Without comitium upgrade we should still be able to withdraw from the old rewards contract
+        // test_claim();
+
+        // Set current multiplier to reward contracts
+        hevm.store(
+            address(rewards),
+            bytes32(uint256(0x9)),
+            bytes32(uint256(100))
+        );
+        hevm.store(
+            address(rewardsNew),
+            bytes32(uint256(0x9)),
+            bytes32(uint256(100))
+        );
+
+        // Approve tokens
+        fdt.approve(address(comitium), fdt.balanceOf(address(this)));
+
+        // Deposit tokens
+        comitiumFacet.deposit(fdt.balanceOf(address(this))); 
+
+        // Current multipliers
+        uint256 userMultiplier0 = rewards.userMultiplier(address(this));
+        uint256 userMultiplier1 = rewardsNew.userMultiplier(address(this));
+        emit log_uint(userMultiplier0);
+        emit log_uint(userMultiplier1);
     }
 }
