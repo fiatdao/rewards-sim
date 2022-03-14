@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.0;
 
 contract Caller {
     /// @dev Can use this method to call any other contract's function
