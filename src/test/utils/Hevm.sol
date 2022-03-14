@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.7.0;
+pragma abicoder v2;
 
 abstract contract Hevm {
     // sets the block timestamp to x
