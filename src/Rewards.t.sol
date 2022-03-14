@@ -8,12 +8,17 @@ import {Hevm} from "./test/utils/Hevm.sol";
 import {Rewards} from "lib/comitium/contracts/Rewards.sol";
 import {Comitium} from "lib/comitium/contracts/Comitium.sol";
 import {ComitiumFacet} from "lib/comitium/contracts/facets/ComitiumFacet.sol";
+import {ChangeRewardsFacet} from "lib/comitium/contracts/facets/ChangeRewardsFacet.sol";
+import {ICommunityVault} from "./ICommunityVault.sol";
+
 
 import {FDT} from "./FDT.sol";
 
 contract RewardsTest is DSTest {
     // Cheat codes
     Hevm internal hevm = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
+
+    ICommunityVault private communityVault = ICommunityVault(0x34d53E1aF009fFDd6878413CC8E83D5a6906B8cB);
 
     // Rewards
     Rewards private rewards =
@@ -27,6 +32,7 @@ contract RewardsTest is DSTest {
     bytes32 private COMITIUM_STORAGE_POSITION =
         keccak256("com.fiatdao.comitium.storage");
     ComitiumFacet private comitiumFacet = ComitiumFacet(address(comitium));
+    ChangeRewardsFacet private changeRewardsFacet = ChangeRewardsFacet(address(comitium));
 
     // FIAT DAO Token
     FDT private fdt = FDT(0xEd1480d12bE41d92F36f5f7bDd88212E381A3677);
@@ -76,47 +82,87 @@ contract RewardsTest is DSTest {
         );
         assertEq(fdt.owner(), address(this));
 
+        hevm.store(address(communityVault), bytes32(uint256(0)), bytes32(uint256(address(this))));
+        assertEq(communityVault.owner(), address(this));
+
         // Mint some FDT tokens
-        fdt.mint(address(this), 100e18);
+        fdt.mint(address(this), 1e18);
     }
 
     function test_claim() public {
-        // Start of rewards
-        hevm.warp(1636934400);
-        hevm.roll(13984334);
-        
         // Set current multiplier to something older
         hevm.store(
             address(rewards),
             bytes32(uint256(0x9)),
-            bytes32(uint256(0xcf02602e4cb74e2 - 100))
+            bytes32(uint256(100))
         );        
 
         // Approve tokens
         fdt.approve(address(comitium), fdt.balanceOf(address(this)));
 
-        // 
-        uint256 userMultiplier0 = rewards.userMultiplier(address(this));
-
         // Deposit tokens
         comitiumFacet.deposit(fdt.balanceOf(address(this)));
 
-        // Forward time
-        hevm.warp(1647255769);
-        hevm.roll(14384340);
+        //
+        uint256 userMultiplier0 = rewards.userMultiplier(address(this));
 
         // Set current multiplier to current
         hevm.store(
             address(rewards),
             bytes32(uint256(0x9)),
-            bytes32(uint256(0xcf02602e4cb74e2))
+            bytes32(uint256(101))
         );         
 
         // Withdraw tokens
         comitiumFacet.withdraw(comitiumFacet.balanceOf(address(this)));
 
+        uint256 userMultiplier1 = rewards.userMultiplier(address(this));
+
+        emit log_uint(userMultiplier0);
+        emit log_uint(userMultiplier1);
+
         // Claim rewards
         uint256 amount = rewards.claim();
         emit log_uint(amount);
+    }
+
+    function test_setNewRewards() public {
+        Rewards rewardsNew = new Rewards(address(this), address(fdt), address(comitium));
+        rewardsNew.setupPullToken(address(communityVault), 1646611201, 1654555389, 4300000000000000000000000);
+        communityVault.setAllowance(address(rewardsNew), 4300000000000000000000000);
+
+        // Change rewards contract was updated
+        changeRewardsFacet.changeRewardsAddress(address(rewardsNew));
+        assertEq(address(rewardsNew), rewards_address());
+
+        // Without comitium upgrade we should still be able to withdraw from the old rewards contract
+        // test_claim();
+
+        // Set current multiplier to reward contracts
+        hevm.store(
+            address(rewards),
+            bytes32(uint256(0x9)),
+            bytes32(uint256(100))
+        );
+        hevm.store(
+            address(rewardsNew),
+            bytes32(uint256(0x9)),
+            bytes32(uint256(100))
+        );
+
+        // Approve tokens
+        fdt.approve(address(comitium), fdt.balanceOf(address(this)));
+
+        // Deposit tokens
+        comitiumFacet.deposit(fdt.balanceOf(address(this))); 
+
+        // Current multipliers
+        uint256 userMultiplier0 = rewards.userMultiplier(address(this));
+        uint256 userMultiplier1 = rewardsNew.userMultiplier(address(this));
+
+        emit log_uint(userMultiplier0);
+        emit log_uint(userMultiplier1);
+
+
     }
 }
