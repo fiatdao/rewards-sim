@@ -17,6 +17,8 @@ import {DiamondCutFacet} from "lib/comitium/contracts/facets/DiamondCutFacet.sol
 
 import {FDT} from "./FDT.sol";
 
+import {Caller} from "./test/utils/Caller.sol";
+
 contract RewardsTest is DSTest {
     // Cheat codes
     Hevm internal hevm = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
@@ -41,6 +43,9 @@ contract RewardsTest is DSTest {
 
     // FIAT DAO Token
     FDT private fdt = FDT(0xEd1480d12bE41d92F36f5f7bDd88212E381A3677);
+
+    // Random user
+    Caller private caller = new Caller();
 
     function owner() internal returns (address) {
         return
@@ -96,6 +101,7 @@ contract RewardsTest is DSTest {
 
         // Mint some FDT tokens
         fdt.mint(address(this), 1e18);
+        fdt.mint(address(caller), 1);
     }
 
     function test_claim() public {
@@ -229,9 +235,26 @@ contract RewardsTest is DSTest {
         );
         emit log_bytes(changeFacet);
 
-        // Change rewards contract was updated
+        // Change rewards contract
         changeRewardsFacet.changeRewardsAddress(address(rewardsNew));
         assertEq(address(rewardsNew), rewards_address());
+
+        // Make a random user deposit tokens
+        caller.externalCall(
+            address(fdt),
+            abi.encodeWithSelector(
+                fdt.approve.selector,
+                address(comitium),
+                fdt.balanceOf(address(caller))
+            )
+        );
+        caller.externalCall(
+            address(comitium),
+            abi.encodeWithSelector(
+                comitiumFacet.deposit.selector,
+                fdt.balanceOf(address(caller))
+            )
+        );
 
         // Set current multiplier to reward contracts
         hevm.store(
