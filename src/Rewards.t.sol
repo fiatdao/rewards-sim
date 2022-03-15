@@ -21,7 +21,8 @@ contract RewardsTest is DSTest {
     // Cheat codes
     Hevm internal hevm = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
-    ICommunityVault private communityVault = ICommunityVault(0x34d53E1aF009fFDd6878413CC8E83D5a6906B8cB);
+    ICommunityVault private communityVault =
+        ICommunityVault(0x34d53E1aF009fFDd6878413CC8E83D5a6906B8cB);
 
     // Rewards
     Rewards private rewards =
@@ -35,7 +36,8 @@ contract RewardsTest is DSTest {
     bytes32 private COMITIUM_STORAGE_POSITION =
         keccak256("com.fiatdao.comitium.storage");
     ComitiumFacet private comitiumFacet = ComitiumFacet(address(comitium));
-    ChangeRewardsFacet private changeRewardsFacet = ChangeRewardsFacet(address(comitium));
+    ChangeRewardsFacet private changeRewardsFacet =
+        ChangeRewardsFacet(address(comitium));
 
     // FIAT DAO Token
     FDT private fdt = FDT(0xEd1480d12bE41d92F36f5f7bDd88212E381A3677);
@@ -85,7 +87,11 @@ contract RewardsTest is DSTest {
         );
         assertEq(fdt.owner(), address(this));
 
-        hevm.store(address(communityVault), bytes32(uint256(0)), bytes32(uint256(address(this))));
+        hevm.store(
+            address(communityVault),
+            bytes32(uint256(0)),
+            bytes32(uint256(address(this)))
+        );
         assertEq(communityVault.owner(), address(this));
 
         // Mint some FDT tokens
@@ -98,7 +104,7 @@ contract RewardsTest is DSTest {
             address(rewards),
             bytes32(uint256(0x9)),
             bytes32(uint256(100))
-        );        
+        );
 
         // Approve tokens
         fdt.approve(address(comitium), fdt.balanceOf(address(this)));
@@ -114,7 +120,7 @@ contract RewardsTest is DSTest {
             address(rewards),
             bytes32(uint256(0x9)),
             bytes32(uint256(101))
-        );         
+        );
 
         // Withdraw tokens
         comitiumFacet.withdraw(comitiumFacet.balanceOf(address(this)));
@@ -130,9 +136,21 @@ contract RewardsTest is DSTest {
     }
 
     function test_setNewRewards() public {
-        Rewards rewardsNew = new Rewards(address(this), address(fdt), address(comitium));
-        rewardsNew.setupPullToken(address(communityVault), 1646611201, 1654555389, 4300000000000000000000000);
-        communityVault.setAllowance(address(rewardsNew), 4300000000000000000000000);
+        Rewards rewardsNew = new Rewards(
+            address(this),
+            address(fdt),
+            address(comitium)
+        );
+        rewardsNew.setupPullToken(
+            address(communityVault),
+            1646611201,
+            1654555389,
+            4300000000000000000000000
+        );
+        communityVault.setAllowance(
+            address(rewardsNew),
+            4300000000000000000000000
+        );
 
         // Change rewards contract was updated
         changeRewardsFacet.changeRewardsAddress(address(rewardsNew));
@@ -154,7 +172,7 @@ contract RewardsTest is DSTest {
         fdt.approve(address(comitium), fdt.balanceOf(address(this)));
 
         // Deposit tokens
-        comitiumFacet.deposit(fdt.balanceOf(address(this))); 
+        comitiumFacet.deposit(fdt.balanceOf(address(this)));
 
         // Current multipliers
         uint256 userMultiplier0 = rewards.userMultiplier(address(this));
@@ -170,9 +188,21 @@ contract RewardsTest is DSTest {
         emit log_uint(userMultiplierBefore0);
 
         // Set up a new rewards
-        Rewards rewardsNew = new Rewards(address(this), address(fdt), address(comitium));
-        rewardsNew.setupPullToken(address(communityVault), 1646611201, 1654555389, 4300000000000000000000000);
-        communityVault.setAllowance(address(rewardsNew), 4300000000000000000000000);
+        Rewards rewardsNew = new Rewards(
+            address(this),
+            address(fdt),
+            address(comitium)
+        );
+        rewardsNew.setupPullToken(
+            address(communityVault),
+            1646611201,
+            1654555389,
+            4300000000000000000000000
+        );
+        communityVault.setAllowance(
+            address(rewardsNew),
+            4300000000000000000000000
+        );
 
         // Deploy new ComitiumFacet
         ComitiumFacetNew comitiumFacetNew = new ComitiumFacetNew();
@@ -190,12 +220,10 @@ contract RewardsTest is DSTest {
 
         // Set new facets for
         DiamondCutFacet dcf = DiamondCutFacet(address(comitium));
-        dcf.diamondCut(
+        dcf.diamondCut(fc, address(0), bytes(""));
+        bytes memory changeFacet = abi.encodeWithSelector(
+            dcf.diamondCut.selector,
             fc,
-            address(0),
-            bytes("")
-        );
-        bytes memory changeFacet = abi.encodeWithSelector(dcf.diamondCut.selector, fc,
             address(0),
             bytes("")
         );
@@ -221,7 +249,7 @@ contract RewardsTest is DSTest {
         fdt.approve(address(comitium), fdt.balanceOf(address(this)));
 
         // Deposit tokens
-        comitiumFacet.deposit(fdt.balanceOf(address(this))); 
+        comitiumFacet.deposit(fdt.balanceOf(address(this)));
 
         // Current multipliers
         uint256 userMultiplier0 = rewards.userMultiplier(address(this));
