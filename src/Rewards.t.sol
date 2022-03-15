@@ -92,6 +92,7 @@ contract RewardsTest is DSTest {
         );
         assertEq(fdt.owner(), address(this));
 
+        // Make `this` CommunityVault owner
         hevm.store(
             address(communityVault),
             bytes32(uint256(0)),
@@ -161,6 +162,23 @@ contract RewardsTest is DSTest {
         // Change rewards contract was updated
         changeRewardsFacet.changeRewardsAddress(address(rewardsNew));
         assertEq(address(rewardsNew), rewards_address());
+
+        // Make a random user deposit tokens
+        caller.externalCall(
+            address(fdt),
+            abi.encodeWithSelector(
+                fdt.approve.selector,
+                address(comitium),
+                fdt.balanceOf(address(caller))
+            )
+        );
+        caller.externalCall(
+            address(comitium),
+            abi.encodeWithSelector(
+                comitiumFacet.deposit.selector,
+                fdt.balanceOf(address(caller))
+            )
+        );
 
         // Set current multiplier to reward contracts
         hevm.store(
