@@ -138,9 +138,6 @@ contract RewardsTest is DSTest {
         changeRewardsFacet.changeRewardsAddress(address(rewardsNew));
         assertEq(address(rewardsNew), rewards_address());
 
-        // Without comitium upgrade we should still be able to withdraw from the old rewards contract
-        // test_claim();
-
         // Set current multiplier to reward contracts
         hevm.store(
             address(rewards),
@@ -177,7 +174,6 @@ contract RewardsTest is DSTest {
         rewardsNew.setupPullToken(address(communityVault), 1646611201, 1654555389, 4300000000000000000000000);
         communityVault.setAllowance(address(rewardsNew), 4300000000000000000000000);
 
-
         // Deploy new ComitiumFacet
         ComitiumFacetNew comitiumFacetNew = new ComitiumFacetNew();
 
@@ -208,9 +204,6 @@ contract RewardsTest is DSTest {
         // Change rewards contract was updated
         changeRewardsFacet.changeRewardsAddress(address(rewardsNew));
         assertEq(address(rewardsNew), rewards_address());
-
-        // Without comitium upgrade we should still be able to withdraw from the old rewards contract
-        // test_claim();
 
         // Set current multiplier to reward contracts
         hevm.store(
