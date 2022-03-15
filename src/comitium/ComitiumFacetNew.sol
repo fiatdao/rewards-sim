@@ -95,10 +95,6 @@ contract ComitiumFacetNew {
 
         // this must be called before the user's balance is updated so the rewards contract can calculate
         // the amount owed correctly
-        if (ds.firstRegisterUserAction[msg.sender] == false) {
-            rewardsOld.registerUserAction(msg.sender);
-            ds.firstRegisterUserAction[msg.sender] = true;
-        }
         if (address(ds.rewards) != address(0)) {
             ds.rewards.registerUserAction(msg.sender);
         }
